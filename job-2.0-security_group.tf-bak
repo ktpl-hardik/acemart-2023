@@ -1,0 +1,688 @@
+##### Create Security Group #####
+data "http" "myip" {
+  url = "http://ipv4.icanhazip.com"
+}
+
+#### Bastion Server Security group ####
+######################################
+resource "aws_security_group" "bastion_sg" {
+  name        = "${var.acemart_prod_owner}-bastion-sg"
+  description = "Allow inbound traffic to bastion instance"
+  vpc_id      = aws_vpc.vpc.id
+
+  ingress = [
+    {
+      description      = "Bastion server access from anywhere"
+      protocol         = var.acemart_prod_sg_ingress_proto
+      from_port        = var.acemart_prod_sg_ingress_ssh
+      to_port          = var.acemart_prod_sg_ingress_ssh
+      cidr_blocks      = ["0.0.0.0/0"]
+      ipv6_cidr_blocks = []
+      prefix_list_ids  = []
+      security_groups  = []
+      self             = false
+    }
+  ]
+
+  egress = [
+    {
+      description      = "All traffic"
+      protocol         = var.acemart_prod_sg_egress_proto
+      from_port        = var.acemart_prod_sg_egress_all
+      to_port          = var.acemart_prod_sg_egress_all
+      cidr_blocks      = [var.acemart_prod_sg_egress_cidr_block]
+      ipv6_cidr_blocks = []
+      prefix_list_ids  = []
+      security_groups  = []
+      self             = false
+    }
+  ]
+
+  tags = {
+    "Owner"     = var.acemart_prod_owner
+    "Name"      = "${var.acemart_prod_owner}-bastion-sg"
+    "Terraform" = "true"
+  }
+}
+
+#### NFS Server Security group ####
+###################################
+resource "aws_security_group" "nfs_sg" {
+  name        = "${var.acemart_prod_owner}-nfs-sg"
+  description = "Allow inbound traffic to NFS Instance"
+  vpc_id      = aws_vpc.vpc.id
+
+  ingress = [
+    {
+      description      = "NV public IP"
+      protocol         = var.acemart_prod_sg_ingress_proto
+      from_port        = var.acemart_prod_sg_ingress_ssh
+      to_port          = var.acemart_prod_sg_ingress_ssh
+      cidr_blocks      = ["${chomp(data.http.myip.response_body)}/32"]
+      ipv6_cidr_blocks = []
+      prefix_list_ids  = []
+      security_groups  = []
+      self             = false
+    },
+    {
+      description      = "KTPL public IP"
+      protocol         = var.acemart_prod_sg_ingress_proto
+      from_port        = var.acemart_prod_sg_ingress_ssh
+      to_port          = var.acemart_prod_sg_ingress_ssh
+      cidr_blocks      = ["202.131.115.176/29"]
+      ipv6_cidr_blocks = []
+      prefix_list_ids  = []
+      security_groups  = []
+      self             = false
+    },
+    {
+      description      = "MD public IP"
+      protocol         = var.acemart_prod_sg_ingress_proto
+      from_port        = var.acemart_prod_sg_ingress_ssh
+      to_port          = var.acemart_prod_sg_ingress_ssh
+      cidr_blocks      = ["180.211.112.80/29"]
+      ipv6_cidr_blocks = []
+      prefix_list_ids  = []
+      security_groups  = []
+      self             = false
+    },
+    {
+      description      = "SSH from bastion"
+      protocol         = var.acemart_prod_sg_ingress_proto
+      from_port        = var.acemart_prod_sg_ingress_ssh
+      to_port          = var.acemart_prod_sg_ingress_ssh
+      cidr_blocks      = []
+      ipv6_cidr_blocks = []
+      prefix_list_ids  = []
+      security_groups  = [aws_security_group.bastion_sg.id]
+      self             = false
+    },
+    {
+      description      = "NFS from base"
+      protocol         = var.acemart_prod_sg_ingress_proto
+      from_port        = var.acemart_prod_sg_ingress_nfs
+      to_port          = var.acemart_prod_sg_ingress_nfs
+      cidr_blocks      = []
+      ipv6_cidr_blocks = []
+      prefix_list_ids  = []
+      security_groups  = [aws_security_group.base_sg.id]
+      self             = false
+    },
+    {
+      description      = "SSH from 3rd party inventory management system"
+      protocol         = var.acemart_prod_sg_ingress_proto
+      from_port        = var.acemart_prod_sg_ingress_ssh
+      to_port          = var.acemart_prod_sg_ingress_ssh
+      cidr_blocks      = ["50.56.220.234/32"]
+      ipv6_cidr_blocks = []
+      prefix_list_ids  = []
+      security_groups  = []
+      self             = false
+    },
+  ]
+
+  egress = [{
+    description      = "All traffic"
+    protocol         = var.acemart_prod_sg_egress_proto
+    from_port        = var.acemart_prod_sg_egress_all
+    to_port          = var.acemart_prod_sg_egress_all
+    cidr_blocks      = [var.acemart_prod_sg_egress_cidr_block]
+    ipv6_cidr_blocks = []
+    prefix_list_ids  = []
+    security_groups  = []
+    self             = false
+
+  }]
+
+  tags = {
+    "Owner"     = var.acemart_prod_owner
+    "Name"      = "${var.acemart_prod_owner}-nfs-sg"
+    "Terraform" = "true"
+  }
+}
+
+#### Base Server Security group ####
+###################################
+resource "aws_security_group" "base_sg" {
+  name        = "${var.acemart_prod_owner}-base-sg"
+  description = "Allow inbound traffic to Base Instance"
+  vpc_id      = aws_vpc.vpc.id
+
+  ingress = [
+    {
+      description      = "SSH access from bastion server"
+      protocol         = var.acemart_prod_sg_ingress_proto
+      from_port        = var.acemart_prod_sg_ingress_ssh
+      to_port          = var.acemart_prod_sg_ingress_ssh
+      cidr_blocks      = []
+      ipv6_cidr_blocks = []
+      prefix_list_ids  = []
+      security_groups  = [aws_security_group.bastion_sg.id]
+      self             = false
+    },
+    {
+      description      = "NV public IP"
+      protocol         = var.acemart_prod_sg_ingress_proto
+      from_port        = var.acemart_prod_sg_ingress_ssh
+      to_port          = var.acemart_prod_sg_ingress_ssh
+      cidr_blocks      = ["${chomp(data.http.myip.response_body)}/32"]
+      ipv6_cidr_blocks = []
+      prefix_list_ids  = []
+      security_groups  = []
+      self             = false
+    },
+    {
+      description      = "KTPL public IP"
+      protocol         = var.acemart_prod_sg_ingress_proto
+      from_port        = var.acemart_prod_sg_ingress_ssh
+      to_port          = var.acemart_prod_sg_ingress_ssh
+      cidr_blocks      = ["202.131.115.176/29"]
+      ipv6_cidr_blocks = []
+      prefix_list_ids  = []
+      security_groups  = []
+      self             = false
+    },
+    {
+      description      = "MD public IP"
+      protocol         = var.acemart_prod_sg_ingress_proto
+      from_port        = var.acemart_prod_sg_ingress_ssh
+      to_port          = var.acemart_prod_sg_ingress_ssh
+      cidr_blocks      = ["180.211.112.80/29"]
+      ipv6_cidr_blocks = []
+      prefix_list_ids  = []
+      security_groups  = []
+      self             = false
+    },
+    #    {      
+    #      description      = "KTPL ElastiCSearch Server"
+    #      protocol         = []
+    #      from_port        = []
+    #      to_port          = []
+    #      cidr_blocks      = ["185.136.156.101/32"]
+    #      ipv6_cidr_blocks = []
+    #      prefix_list_ids  = []
+    #      security_groups  = []
+    #      self             = false
+    #    },
+    {
+      description      = "HTTP global allow"
+      protocol         = var.acemart_prod_sg_ingress_proto
+      from_port        = var.acemart_prod_sg_ingress_http
+      to_port          = var.acemart_prod_sg_ingress_http
+      cidr_blocks      = ["0.0.0.0/0"]
+      ipv6_cidr_blocks = [var.acemart_prod_sg_ingress_cidr_block_ipv6]
+      prefix_list_ids  = []
+      security_groups  = []
+      self             = false
+    },
+    {
+      description      = "HTTPs global allow"
+      protocol         = var.acemart_prod_sg_ingress_proto
+      from_port        = var.acemart_prod_sg_ingress_https
+      to_port          = var.acemart_prod_sg_ingress_https
+      cidr_blocks      = ["0.0.0.0/0"]
+      ipv6_cidr_blocks = [var.acemart_prod_sg_ingress_cidr_block_ipv6]
+      prefix_list_ids  = []
+      security_groups  = []
+      self             = false
+    },
+    {
+      description      = "SSH from Acemart Corporate LB IP - 1"
+      protocol         = var.acemart_prod_sg_ingress_proto
+      from_port        = var.acemart_prod_sg_ingress_ssh
+      to_port          = var.acemart_prod_sg_ingress_ssh
+      cidr_blocks      = ["64.132.229.66/32"]
+      ipv6_cidr_blocks = []
+      prefix_list_ids  = []
+      security_groups  = []
+      self             = false
+    },
+    {
+      description      = "SSH from Acemart Corporate LB IP - 2"
+      protocol         = var.acemart_prod_sg_ingress_proto
+      from_port        = var.acemart_prod_sg_ingress_ssh
+      to_port          = var.acemart_prod_sg_ingress_ssh
+      cidr_blocks      = ["184.80.232.34/32"]
+      ipv6_cidr_blocks = []
+      prefix_list_ids  = []
+      security_groups  = []
+      self             = false
+    }
+  ]
+
+  egress = [{
+    description      = "All traffic"
+    protocol         = var.acemart_prod_sg_egress_proto
+    from_port        = var.acemart_prod_sg_egress_all
+    to_port          = var.acemart_prod_sg_egress_all
+    cidr_blocks      = [var.acemart_prod_sg_egress_cidr_block]
+    ipv6_cidr_blocks = []
+    prefix_list_ids  = []
+    security_groups  = []
+    self             = false
+
+  }]
+
+  tags = {
+    "Owner"     = var.acemart_prod_owner
+    "Name"      = "${var.acemart_prod_owner}-base-sg"
+    "Terraform" = "true"
+  }
+}
+
+#### Web Server Security group ####
+###################################
+resource "aws_security_group" "web_sg" {
+  name        = "${var.acemart_prod_owner}-web-sg"
+  description = "Allow inbound traffic to Web Instance"
+  vpc_id      = aws_vpc.vpc.id
+
+  ingress = [
+    {
+      description      = "SSH Access from bastion server"
+      protocol         = var.acemart_prod_sg_ingress_proto
+      from_port        = var.acemart_prod_sg_ingress_ssh
+      to_port          = var.acemart_prod_sg_ingress_ssh
+      cidr_blocks      = []
+      ipv6_cidr_blocks = []
+      prefix_list_ids  = []
+      security_groups  = [aws_security_group.bastion_sg.id]
+      self             = false
+    },
+    {
+      description      = "NV public IP"
+      protocol         = var.acemart_prod_sg_ingress_proto
+      from_port        = var.acemart_prod_sg_ingress_ssh
+      to_port          = var.acemart_prod_sg_ingress_ssh
+      cidr_blocks      = ["${chomp(data.http.myip.response_body)}/32"]
+      ipv6_cidr_blocks = []
+      prefix_list_ids  = []
+      security_groups  = []
+      self             = false
+    },
+    {
+      description      = "KTPL public IP"
+      protocol         = var.acemart_prod_sg_ingress_proto
+      from_port        = var.acemart_prod_sg_ingress_ssh
+      to_port          = var.acemart_prod_sg_ingress_ssh
+      cidr_blocks      = ["202.131.115.176/29"]
+      ipv6_cidr_blocks = []
+      prefix_list_ids  = []
+      security_groups  = []
+      self             = false
+    },
+    {
+      description      = "MD public IP"
+      protocol         = var.acemart_prod_sg_ingress_proto
+      from_port        = var.acemart_prod_sg_ingress_ssh
+      to_port          = var.acemart_prod_sg_ingress_ssh
+      cidr_blocks      = ["180.211.112.80/29"]
+      ipv6_cidr_blocks = []
+      prefix_list_ids  = []
+      security_groups  = []
+      self             = false
+    },
+    #    {      
+    #      description      = "KTPL ElastiCSearch Server"
+    #      protocol         = []
+    #      from_port        = []
+    #      to_port          = []
+    #      cidr_blocks      = ["185.136.156.101/32"]
+    #      ipv6_cidr_blocks = []
+    #      prefix_list_ids  = []
+    #      security_groups  = []
+    #      self             = false
+    #    },
+    {
+      description      = "HTTP global allow"
+      protocol         = var.acemart_prod_sg_ingress_proto
+      from_port        = var.acemart_prod_sg_ingress_http
+      to_port          = var.acemart_prod_sg_ingress_http
+      cidr_blocks      = [var.acemart_prod_sg_ingress_cidr_block_ipv4]
+      ipv6_cidr_blocks = [var.acemart_prod_sg_ingress_cidr_block_ipv6]
+      prefix_list_ids  = []
+      security_groups  = []
+      self             = false
+    },
+    {
+      description      = "HTTPs global allow"
+      protocol         = var.acemart_prod_sg_ingress_proto
+      from_port        = var.acemart_prod_sg_ingress_https
+      to_port          = var.acemart_prod_sg_ingress_https
+      cidr_blocks      = [var.acemart_prod_sg_ingress_cidr_block_ipv4]
+      ipv6_cidr_blocks = [var.acemart_prod_sg_ingress_cidr_block_ipv6]
+      prefix_list_ids  = []
+      security_groups  = []
+      self             = false
+    },
+    {
+      description      = "SSH from Acemart Corporate LB IP - 1"
+      protocol         = var.acemart_prod_sg_ingress_proto
+      from_port        = var.acemart_prod_sg_ingress_ssh
+      to_port          = var.acemart_prod_sg_ingress_ssh
+      cidr_blocks      = ["64.132.229.66/32"]
+      ipv6_cidr_blocks = []
+      prefix_list_ids  = []
+      security_groups  = []
+      self             = false
+    },
+    {
+      description      = "SSH from Acemart Corporate LB IP - 2"
+      protocol         = var.acemart_prod_sg_ingress_proto
+      from_port        = var.acemart_prod_sg_ingress_ssh
+      to_port          = var.acemart_prod_sg_ingress_ssh
+      cidr_blocks      = ["184.80.232.34/32"]
+      ipv6_cidr_blocks = []
+      prefix_list_ids  = []
+      security_groups  = []
+      self             = false
+    },
+  ]
+
+  egress = [{
+    description      = "All traffic"
+    protocol         = var.acemart_prod_sg_egress_proto
+    from_port        = var.acemart_prod_sg_egress_all
+    to_port          = var.acemart_prod_sg_egress_all
+    cidr_blocks      = [var.acemart_prod_sg_egress_cidr_block]
+    ipv6_cidr_blocks = []
+    prefix_list_ids  = []
+    security_groups  = []
+    self             = false
+
+  }]
+
+  tags = {
+    "Owner"     = var.acemart_prod_owner
+    "Name"      = "${var.acemart_prod_owner}-web-sg"
+    "Terraform" = "true"
+  }
+}
+
+
+#### MySQL Server Security group ####
+#####################################
+resource "aws_security_group" "mysql_sg" {
+  name        = "${var.acemart_prod_owner}-mysql-sg"
+  description = "Allow inbound traffic to MySQL Instance"
+  vpc_id      = aws_vpc.vpc.id
+
+  ingress = [
+    {
+      description      = "SSH access from bastion server"
+      protocol         = var.acemart_prod_sg_ingress_proto
+      from_port        = var.acemart_prod_sg_ingress_ssh
+      to_port          = var.acemart_prod_sg_ingress_ssh
+      cidr_blocks      = []
+      ipv6_cidr_blocks = []
+      prefix_list_ids  = []
+      security_groups  = [aws_security_group.bastion_sg.id]
+      self             = false
+    },
+    {
+      description      = "MySQL access from NFS server"
+      protocol         = var.acemart_prod_sg_ingress_proto
+      from_port        = var.acemart_prod_sg_ingress_mysql
+      to_port          = var.acemart_prod_sg_ingress_mysql
+      cidr_blocks      = []
+      ipv6_cidr_blocks = []
+      prefix_list_ids  = []
+      security_groups  = [aws_security_group.nfs_sg.id]
+      self             = false
+    },
+    {
+      description      = "MySQL access from base server"
+      protocol         = var.acemart_prod_sg_ingress_proto
+      from_port        = var.acemart_prod_sg_ingress_mysql
+      to_port          = var.acemart_prod_sg_ingress_mysql
+      cidr_blocks      = []
+      ipv6_cidr_blocks = []
+      prefix_list_ids  = []
+      security_groups  = [aws_security_group.base_sg.id]
+      self             = false
+    },
+    {
+      description      = "SSH access from KTPL public IP"
+      protocol         = var.acemart_prod_sg_ingress_proto
+      from_port        = var.acemart_prod_sg_ingress_ssh
+      to_port          = var.acemart_prod_sg_ingress_ssh
+      cidr_blocks      = ["202.131.115.176/29"]
+      ipv6_cidr_blocks = []
+      prefix_list_ids  = []
+      security_groups  = []
+      self             = false
+    },
+    {
+      description      = "MySQL access from KTPL public IP"
+      protocol         = var.acemart_prod_sg_ingress_proto
+      from_port        = var.acemart_prod_sg_ingress_mysql
+      to_port          = var.acemart_prod_sg_ingress_mysql
+      cidr_blocks      = ["202.131.115.176/29"]
+      ipv6_cidr_blocks = []
+      prefix_list_ids  = []
+      security_groups  = []
+      self             = false
+    },
+  ]
+
+  egress = [{
+    description      = "All traffic"
+    protocol         = var.acemart_prod_sg_egress_proto
+    from_port        = var.acemart_prod_sg_egress_all
+    to_port          = var.acemart_prod_sg_egress_all
+    cidr_blocks      = [var.acemart_prod_sg_egress_cidr_block]
+    ipv6_cidr_blocks = []
+    prefix_list_ids  = []
+    security_groups  = []
+    self             = false
+  }]
+
+  tags = {
+    "Owner"     = var.acemart_prod_owner
+    "Name"      = "${var.acemart_prod_owner}-mysql-sg"
+    "Terraform" = "true"
+  }
+}
+
+#### Cache Server Security group ####
+#####################################
+resource "aws_security_group" "cache_sg" {
+  name        = "${var.acemart_prod_owner}-cache-sg"
+  description = "Allow inbound traffic to Cache Instance"
+  vpc_id      = aws_vpc.vpc.id
+
+  ingress = [
+    {
+      description      = "KTPL public IP"
+      protocol         = var.acemart_prod_sg_ingress_proto
+      from_port        = var.acemart_prod_sg_ingress_ssh
+      to_port          = var.acemart_prod_sg_ingress_ssh
+      cidr_blocks      = ["202.131.115.176/29"]
+      ipv6_cidr_blocks = []
+      prefix_list_ids  = []
+      security_groups  = []
+      self             = false
+    },
+    {
+      description      = "SSH access from bastion server"
+      protocol         = var.acemart_prod_sg_ingress_proto
+      from_port        = var.acemart_prod_sg_ingress_ssh
+      to_port          = var.acemart_prod_sg_ingress_ssh
+      cidr_blocks      = []
+      ipv6_cidr_blocks = []
+      prefix_list_ids  = []
+      security_groups  = [aws_security_group.bastion_sg.id]
+      self             = false
+    },
+    {
+      description      = "Redis access from base server"
+      protocol         = var.acemart_prod_sg_ingress_proto
+      from_port        = var.acemart_prod_sg_ingress_redis
+      to_port          = var.acemart_prod_sg_ingress_redis
+      cidr_blocks      = []
+      ipv6_cidr_blocks = []
+      prefix_list_ids  = []
+      security_groups  = [aws_security_group.base_sg.id]
+      self             = false
+    },
+    {
+      description      = "Redis access from NFS server"
+      protocol         = var.acemart_prod_sg_ingress_proto
+      from_port        = var.acemart_prod_sg_ingress_redis
+      to_port          = var.acemart_prod_sg_ingress_redis
+      cidr_blocks      = []
+      ipv6_cidr_blocks = []
+      prefix_list_ids  = []
+      security_groups  = [aws_security_group.nfs_sg.id]
+      self             = false
+    },
+    {
+      description      = "Elasticsearch access from base server"
+      protocol         = var.acemart_prod_sg_ingress_proto
+      from_port        = var.acemart_prod_sg_ingress_elasticsearch
+      to_port          = var.acemart_prod_sg_ingress_elasticsearch
+      cidr_blocks      = []
+      ipv6_cidr_blocks = []
+      prefix_list_ids  = []
+      security_groups  = [aws_security_group.base_sg.id]
+      self             = false
+    },
+    {
+      description      = "Elasticsearch access from NFS server"
+      protocol         = var.acemart_prod_sg_ingress_proto
+      from_port        = var.acemart_prod_sg_ingress_elasticsearch
+      to_port          = var.acemart_prod_sg_ingress_elasticsearch
+      cidr_blocks      = []
+      ipv6_cidr_blocks = []
+      prefix_list_ids  = []
+      security_groups  = [aws_security_group.nfs_sg.id]
+      self             = false
+    },
+  ]
+
+  egress = [{
+    description      = "All traffic"
+    protocol         = var.acemart_prod_sg_egress_proto
+    from_port        = var.acemart_prod_sg_egress_all
+    to_port          = var.acemart_prod_sg_egress_all
+    cidr_blocks      = [var.acemart_prod_sg_egress_cidr_block]
+    ipv6_cidr_blocks = []
+    prefix_list_ids  = []
+    security_groups  = []
+    self             = false
+  }]
+
+  tags = {
+    "Owner"     = var.acemart_prod_owner
+    "Name"      = "${var.acemart_prod_owner}-cache-sg"
+    "Terraform" = "true"
+  }
+}
+
+#### PWA Server Security group ####
+#####################################
+resource "aws_security_group" "pwa_sg" {
+  name        = "${var.acemart_prod_owner}-pwa-sg"
+  description = "Allow inbound traffic to pwa Instance"
+  vpc_id      = aws_vpc.vpc.id
+
+  ingress = [
+    {
+      description      = "NV public IP"
+      protocol         = var.acemart_prod_sg_ingress_proto
+      from_port        = var.acemart_prod_sg_ingress_ssh
+      to_port          = var.acemart_prod_sg_ingress_ssh
+      cidr_blocks      = ["${chomp(data.http.myip.response_body)}/32"]
+      ipv6_cidr_blocks = []
+      prefix_list_ids  = []
+      security_groups  = []
+      self             = false
+    },
+    {
+      description      = "KTPL public IP"
+      protocol         = var.acemart_prod_sg_ingress_proto
+      from_port        = var.acemart_prod_sg_ingress_ssh
+      to_port          = var.acemart_prod_sg_ingress_ssh
+      cidr_blocks      = ["202.131.115.176/29"]
+      ipv6_cidr_blocks = []
+      prefix_list_ids  = []
+      security_groups  = []
+      self             = false
+    },
+    {
+      description      = "SSH access from bastion server"
+      protocol         = var.acemart_prod_sg_ingress_proto
+      from_port        = var.acemart_prod_sg_ingress_ssh
+      to_port          = var.acemart_prod_sg_ingress_ssh
+      cidr_blocks      = []
+      ipv6_cidr_blocks = []
+      prefix_list_ids  = []
+      security_groups  = [aws_security_group.bastion_sg.id]
+      self             = false
+    },
+    {
+      description      = "HTTP global allow"
+      protocol         = var.acemart_prod_sg_ingress_proto
+      from_port        = var.acemart_prod_sg_ingress_http
+      to_port          = var.acemart_prod_sg_ingress_http
+      cidr_blocks      = [var.acemart_prod_sg_ingress_cidr_block_ipv4]
+      ipv6_cidr_blocks = [var.acemart_prod_sg_ingress_cidr_block_ipv6]
+      prefix_list_ids  = []
+      security_groups  = []
+      self             = false
+    },
+    {
+      description      = "HTTPs global allow"
+      protocol         = var.acemart_prod_sg_ingress_proto
+      from_port        = var.acemart_prod_sg_ingress_https
+      to_port          = var.acemart_prod_sg_ingress_https
+      cidr_blocks      = [var.acemart_prod_sg_ingress_cidr_block_ipv4]
+      ipv6_cidr_blocks = [var.acemart_prod_sg_ingress_cidr_block_ipv6]
+      prefix_list_ids  = []
+      security_groups  = []
+      self             = false
+    },
+    {
+      description      = "SSH from Acemart Corporate LB IP - 1"
+      protocol         = var.acemart_prod_sg_ingress_proto
+      from_port        = var.acemart_prod_sg_ingress_ssh
+      to_port          = var.acemart_prod_sg_ingress_ssh
+      cidr_blocks      = ["64.132.229.66/32"]
+      ipv6_cidr_blocks = []
+      prefix_list_ids  = []
+      security_groups  = []
+      self             = false
+    },
+    {
+      description      = "SSH from Acemart Corporate LB IP - 2"
+      protocol         = var.acemart_prod_sg_ingress_proto
+      from_port        = var.acemart_prod_sg_ingress_ssh
+      to_port          = var.acemart_prod_sg_ingress_ssh
+      cidr_blocks      = ["184.80.232.34/32"]
+      ipv6_cidr_blocks = []
+      prefix_list_ids  = []
+      security_groups  = []
+      self             = false
+    }
+  ]
+
+  egress = [{
+    description      = "All traffic"
+    protocol         = var.acemart_prod_sg_egress_proto
+    from_port        = var.acemart_prod_sg_egress_all
+    to_port          = var.acemart_prod_sg_egress_all
+    cidr_blocks      = [var.acemart_prod_sg_egress_cidr_block]
+    ipv6_cidr_blocks = []
+    prefix_list_ids  = []
+    security_groups  = []
+    self             = false
+  }]
+
+  tags = {
+    "Owner"     = var.acemart_prod_owner
+    "Name"      = "${var.acemart_prod_owner}-pwa-sg"
+    "Terraform" = "true"
+  }
+}
+
+

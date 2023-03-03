@@ -1,0 +1,9 @@
+resource "aws_s3_bucket" "bucket" {
+   bucket = "${var.acemart_prod_owner}-bucket"   
+   
+   tags = {
+      Owner = var.acemart_prod_owner
+      Name = "${var.acemart_prod_owner}-bucket"
+      Environment = "prod"
+   }
+}   
