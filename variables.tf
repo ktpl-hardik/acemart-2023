@@ -33,13 +33,13 @@ variable "acemart_prod_aws_region_azs" {
 variable "acemart_prod_vpc_cidr_block" {
   description = "CIDR block for the VPC"
   type        = string
-  default     = "10.16.1.0/24"
+  default     = "10.16.2.0/24"
 }
 
 variable "acemart_prod_sbn_cidr_block" {
   description = "CIDR block for the subnet"
   type        = list(any)
-  default     = ["10.16.1.0/26", "10.16.1.64/26"]
+  default     = ["10.16.2.0/26", "10.16.2.64/26"]
 }
 
 variable "acemart_prod_vpc_dns_support" {
