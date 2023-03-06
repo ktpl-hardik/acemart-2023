@@ -90,43 +90,43 @@ variable "acemart_prod_magento_instance_ami" {
 variable "acemart_prod_bastion_instance_type" {
   description = "Type of the instance"
   type        = string
-  default     = "t2.micro"
+  default     = "t3.micro"
 }
 
 variable "acemart_prod_nfs_instance_type" {
   description = "Type of the instance"
   type        = string
-  default     = "t2.micro"
+  default     = "c5.xlarge"
 }
 
 variable "acemart_prod_base_instance_type" {
   description = "Type of the instance"
   type        = string
-  default     = "t2.micro"
+  default     = "c5.xlarge"
 }
 
 variable "acemart_prod_mysql_instance_type" {
   description = "Type of the instance"
   type        = string
-  default     = "t2.micro"
+  default     = "c5.xlarge"
 }
 
 variable "acemart_prod_magento_instance_type" {
   description = "Type of the instance"
   type        = string
-  default     = "t2.micro"
+  default     = "c5.xlarge"
 }
 
 variable "acemart_prod_cache_instance_type" {
   description = "Type of the instance"
   type        = string
-  default     = "t2.micro"
+  default     = "m5.large"
 }
 
 variable "acemart_prod_pwa_instance_type" {
   description = "Type of the instance"
   type        = string
-  default     = "t2.micro"
+  default     = "c5.xlarge"
 }
 
 variable "acemart_prod_instance_type" {
